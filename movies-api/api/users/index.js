@@ -19,7 +19,11 @@ router.post('/',asyncHandler( async (req, res, next) => {
       return next();
     }
     if (req.query.action === 'register') {
-      await User.create(req.body);
+        if (/^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d]{5,}$/.test(req.body.password)){
+            await User.create(req.body);
+        }else{
+            res.status(401).json({code: 201, msg: 'Registration failed: bad password. Please ensure password is at least 5 characters long and contains a number.'});
+        }
       res.status(201).json({code: 201, msg: 'Successful created new user.'});
     } else {
       const user = await User.findByUserName(req.body.username);
@@ -56,9 +60,19 @@ router.post('/:userName/favourites', asyncHandler(async (req, res) => {
     const userName = req.params.userName;
     const movie = await movieModel.findByMovieDBId(newFavourite);
     const user = await User.findByUserName(userName);
-    await user.favourites.push(movie._id);
-    await user.save(); 
-    res.status(201).json(user); 
+
+    console.log(newFavourite)
+    console.log(userName)
+    console.log(movie)
+    console.log(user)
+
+    if ( await user.favourites.includes(movie._id)){
+        res.status(401).json({code: 401,msg: 'Movie is already in user\'s favourites.'});
+    }else{
+        await user.favourites.push(movie._id);
+        await user.save(); 
+        res.status(201).json(user); 
+    }
   }));
 
   router.get('/:userName/favourites', asyncHandler( async (req, res) => {
